@@ -1,5 +1,6 @@
 module ClimFlowsPlots
 
-# Write your package code here.
+include("interpolation.jl")
+include("voronoi_sphere.jl")
 
 end
