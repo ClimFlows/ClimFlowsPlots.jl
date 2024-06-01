@@ -19,7 +19,7 @@ const DATA_ON_PRIMAL = "Data must be a scalar defined at primal cells of a spher
 Plots scalar data as a function of longitude and latitude. $DATA_ON_PRIMAL. Data is interpolated linearly to
 a regular lon-lat grid of resolution `resolution` before plotting.
 """
-function plot_2D(sphere, data::Makie.Observable; resolution = 1.0)
+function plot_2D(sphere, data::Makie.Observable; resolution = 1.0, options...)
     # check that data is on primal mesh and interpolate to lon-lat
     @assert length(data[]) == length(sphere.Ai)
     lons, lats = -180:resolution:180, -90:resolution:90
@@ -27,7 +27,7 @@ function plot_2D(sphere, data::Makie.Observable; resolution = 1.0)
     # create and return plot
     fig = Makie.Figure(size = (1440, 720))
     ax = Makie.Axis(fig[1, 1], aspect = 2)
-    Makie.heatmap!(ax, color; colormap = :hot)
+    Makie.heatmap!(ax, color; colormap = :hot, options...)
     return fig
 end
 
@@ -41,7 +41,7 @@ end
 Plots scalar data in a stereographic view. $DATA_ON_PRIMAL. Data is interpolated linearly to
 a regular lon-lat grid of resolution `resolution` before plotting.
 """
-function plot_orthographic(sphere, data::Makie.Observable; resolution = 0.5)
+function plot_orthographic(sphere, data::Makie.Observable; resolution = 0.5, options...)
     # check that data is on primal mesh and interpolate to lon-lat
     @assert length(data[]) == length(sphere.Ai)
     lons, lats = -180:resolution:180, -90:resolution:90
@@ -49,7 +49,7 @@ function plot_orthographic(sphere, data::Makie.Observable; resolution = 0.5)
     # create and return plot
     fig = Figure()
     ga = GeoAxis(fig[1, 1]; dest = "+proj=ortho +lon_0=19 +lat_0=50")
-    surface!(ga, lons, lats, color; shading = NoShading)
+    surface!(ga, lons, lats, color; shading = NoShading, options...)
     lines!(ga, GeoMakie.coastlines())
     return fig
 end
@@ -65,7 +65,7 @@ end
     native mesh is used without interpolation, but plotting interpolates linearly between
     primal cell centers (which coincides with triangle vertices).
 """
-function plot_native_3D(sphere, data::Makie.Observable; zoom = 1.6)
+function plot_native_3D(sphere, data::Makie.Observable; zoom = 1.6, options...)
     # check that data is on primal mesh
     @assert length(data[]) == length(sphere.Ai)
     # build graphical mesh
@@ -78,7 +78,7 @@ function plot_native_3D(sphere, data::Makie.Observable; zoom = 1.6)
     ]
     makiemesh = GB.Mesh(nodes, faces)
     # create and return plot
-    fig, ax, obj = Makie.mesh(makiemesh; color = data)
+    fig, ax, obj = Makie.mesh(makiemesh; color = data, options...)
     Makie.scale!(ax.scene, zoom, zoom, zoom)
     return fig
 end

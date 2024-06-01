@@ -1,7 +1,7 @@
 name = "ClimFlowsPlots"
 uuid = "dd0979db-5334-4d13-8d2e-fa88a4f47f12"
 authors = ["The ClimFlows contributors"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 BoundingSphere = "747eb165-47b8-53f2-ad32-9704a7dfc50a"
@@ -14,8 +14,13 @@ Metis = "2679e427-3c69-5b7f-982b-ece356f1e94b"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
+BoundingSphere = "0.2"
+ColorSchemes = "1,2,3"
+GeoMakie = "0.6"
+GeometryBasics = "0.4"
 LightGraphs = "1"
-Makie = "0.21"
+Makie = "0.20"
+Metis = "1"
 StaticArrays = "1"
 julia = "1.8"
 
