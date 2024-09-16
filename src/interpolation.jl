@@ -16,17 +16,41 @@ using Metis, LightGraphs, BoundingSphere, StaticArrays
 point(lon,lat) = SVector( map(Float64, (cos(lat)*cos(lon), cos(lat)*sin(lon), sin(lat))) )
 
 """
-Returns a function that interpolates data given at mesh nodes onto a regular lon-lat mesh. Lons and Lats are ine degrees.
+    interp = lonlat_interp(mesh, lons, lats)
+    data_lonlat = interp(data_mesh)
+Return `interp`, which can be called to interpolate data
+given at mesh nodes onto a regular lon-lat mesh.
+*Lons and Lats are in degrees*.
+
 """
 function lonlat_interp(mesh, lons, lats)
+    ijrange = eachindex(mesh.Ai)
     x = [ point((pi/180)*lon,(pi/180)*lat) for lat in lats, lon in lons]
-    pts = [ point(mesh.lon_i[ij], mesh.lat_i[ij]) for ij in eachindex(mesh.Ai) ]
+    pts = [ point(mesh.lon_i[ij], mesh.lat_i[ij]) for ij in ijrange]
     g = SimpleGraph([ Edge(mesh.edge_down_up[1,i], mesh.edge_down_up[2,i]) for i in eachindex(mesh.le)])
     sphtree = spheretree(meshtree(Metis.graph(g),4), dual_spheres(mesh))
     ww = [ traverse(xx, sphtree) do x, v
         return weights(x, v, pts, mesh.dual_vertex)
     end for xx in x ]
-    return data -> interpolate(ww, data)
+    return Interpolator(ijrange, ww)
+#    return data -> interpolate(ww, data)
+end
+
+struct Interpolator{IJ, W}
+    ijrange::IJ
+    ww::W
+end
+function (interp::Interpolator)(data::AbstractMatrix)
+    if axes(data,1) == interp.ijrange
+        return interpolate_HV(interp.ww, data)
+    else
+        @assert axes(data,2) == interp.ijrange
+        return interpolate_VH(interp.ww, data)
+    end
+end
+function (interp::Interpolator)(data::AbstractVector)
+    @assert axes(data, 1) == interp.ijrange
+    return interpolate(interp.ww, data)
 end
 
 # Linearly interpolated value from indices (i,j,k) with weights (a,b,c)
@@ -35,7 +59,7 @@ end
 interpolate(w::Matrix, data::AbstractVector) = [interpolate(ww, data) for ww in w]
 interpolate(w::Matrix, datas::Tuple) = Tuple(interpolate(w,data) for data in datas)
 
-function interpolate(w::Matrix, data::AbstractMatrix)
+function interpolate_VH(w::Matrix, data::AbstractMatrix)
     result = similar(data, size(data,1), size(w, 1), size(w,2))
     @fast for i in axes(w, 2), j in axes(w,1)
         (ii,jj,kk), (a,b,c) = w[j,i]
