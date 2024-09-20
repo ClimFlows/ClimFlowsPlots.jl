@@ -1,7 +1,7 @@
 name = "ClimFlowsPlots"
 uuid = "dd0979db-5334-4d13-8d2e-fa88a4f47f12"
 authors = ["The ClimFlows contributors"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 BoundingSphere = "747eb165-47b8-53f2-ad32-9704a7dfc50a"
