@@ -61,10 +61,10 @@ interpolate(w::Matrix, datas::Tuple) = Tuple(interpolate(w,data) for data in dat
 
 function interpolate_VH(w::Matrix, data::AbstractMatrix)
     result = similar(data, size(data,1), size(w, 1), size(w,2))
-    @fast for i in axes(w, 2), j in axes(w,1)
+    @fast for j in axes(w,1), i in axes(w, 2)
         (ii,jj,kk), (a,b,c) = w[j,i]
         @simd for k in axes(data,1)
-            result[k,j,i] = a*data[k,ii]+b*data[k,jj]+c*data[k,kk]
+            result[k,j,i] = muladd(a , data[k,ii], muladd(b, data[k,jj], c*data[k,kk]))
         end
     end
     return result
@@ -72,7 +72,8 @@ end
 
 # Returns interpolation weights if point `x` inside triangle `( pts[vtx[i,v]] for i=1:3 )`, else nothing
 function weights(x, v, pts, vtx)
-    ijk = i, j, k = ( vtx[i,v] for i in 1:3 )
+    i, j, k = ( vtx[i,v] for i in 1:3 )
+    ijk = i, j, k # tuple
     a, b, c = ( pts[i]   for i in ijk )
     xab = triprod(x,a,b)
     xbc = triprod(x,b,c)
