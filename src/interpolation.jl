@@ -36,6 +36,31 @@ function lonlat_interp(mesh, lons, lats)
 #    return data -> interpolate(ww, data)
 end
 
+"""
+    data_lin = linear_interpolator(mesh, data)
+    data_lonlat = data_lin(lon, lat)
+
+Return `data_lin`, which interpolates `data` linearly at point 
+with longitude `lon` and latitude `lat` *in radians* :
+
+    data_lin(mesh.lon_i[ij], mesh.lat_i[ij]) == data[ij]
+
+"""
+function linear_interpolator(mesh, data)
+    pts = map(point, mesh.lon_i, mesh.lat_i)
+    g = SimpleGraph([ Edge(mesh.edge_down_up[1,i], mesh.edge_down_up[2,i]) for i in eachindex(mesh.le)])
+    sphtree = spheretree(meshtree(Metis.graph(g),4), dual_spheres(mesh))
+
+    function eval(lon, lat)
+        x = point(lon, lat)
+        w = traverse(x, sphtree) do x, v
+            weights(x, v, pts, mesh.dual_vertex)
+        end
+        isnothing(w) && @info "point not found !" lon lat x
+        return interpolate(w, data)
+    end
+end
+
 struct Interpolator{IJ, W}
     ijrange::IJ
     ww::W
@@ -70,9 +95,10 @@ function interpolate_VH(w::Matrix, data::AbstractMatrix)
     return result
 end
 
+
 # Returns interpolation weights if point `x` inside triangle `( pts[vtx[i,v]] for i=1:3 )`, else nothing
 function weights(x, v, pts, vtx)
-    i, j, k = ( vtx[i,v] for i in 1:3 )
+    i, j, k = ( vtx[n,v] for n in 1:3 )
     ijk = i, j, k # tuple
     a, b, c = ( pts[i]   for i in ijk )
     xab = triprod(x,a,b)
@@ -82,7 +108,18 @@ function weights(x, v, pts, vtx)
         w = inv(xab+xbc+xca)
         return ijk, (w*xbc, w*xca, w*xab)
     else
-        return nothing
+        wabs = abs(xab)+abs(xbc)+abs(xca)
+        nz(x) = (abs(x)<=(1e-12*wabs))
+        nzab, nzbc, nzca = nz(xab), nz(xbc), nz(xca)
+        if nzab || nzbc || nzca
+#            @info "point on boundary"
+            w = inv(xab+xbc+xca)
+            return ijk, (w*xbc, w*xca, w*xab)
+        else
+#            xx, zab, zbc, zca  = tuple(x), xab/wabs, xbc/wabs, xca/wabs
+#            @info "not in abc" xx (zab, zbc, zca) (nzab, nzbc, nzca)
+            return nothing
+        end
     end
 end
 
@@ -119,18 +156,18 @@ function traverse(fun::Fun, x, tree) where Fun
         if length(child)>1
             for c in child
                 result = traverse(fun, x, c)
-                result === nothing || break
+                isnothing(result)  || break
             end
         else
             for v in node.glob
                 result = fun(x, v)
-                result === nothing || break
+                isnothing(result) || break
             end
         end
     end
     return result
 end
-@inline isinsphere((x,y,z),(a,b,c), radius) = @fastmath (x-a)^2+(y-b)^2+(z-c)^2<=radius*radius*1.000001
+@inline isinsphere((x,y,z),(a,b,c), radius) = (x-a)^2+(y-b)^2+(z-c)^2<=radius*radius*1.000001
 
 """
 Given bounding spheres for leaves, constructs bounding spheres at each level of the tree.
@@ -162,7 +199,7 @@ end
 function dual_sphere(pts, v)
     pts = [pts[vv] for vv in v]
     center, radius = BoundingSphere.boundingsphere(pts)
-    return (center=center, radius=radius)
+    return (center=center, radius=radius*2)
 end
 
 function dual_spheres(mesh)
