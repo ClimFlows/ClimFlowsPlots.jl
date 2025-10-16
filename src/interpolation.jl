@@ -16,20 +16,18 @@ using Metis, LightGraphs, BoundingSphere, StaticArrays
 point(lon,lat) = SVector( map(Float64, (cos(lat)*cos(lon), cos(lat)*sin(lon), sin(lat))) )
 
 """
-    interp = lonlat_interp(mesh, lons, lats)
+    interp = lonlat_interp(lons, lats, mesh, tree=spherical_tree(mesh))
     data_lonlat = interp(data_mesh)
-Return `interp`, which can be called to interpolate data
-given at mesh nodes onto a regular lon-lat mesh.
-*Lons and Lats are in degrees*.
+Return function `interp`, which interpolates data
+given at mesh nodes onto the longitude-latitutde grid 
+defined by vectors `lons` and `lats` *in degrees*.
 
 """
-function lonlat_interp(mesh, lons, lats)
+function lonlat_interp(lons, lats, mesh, tree=spherical_tree(mesh))
     ijrange = eachindex(mesh.Ai)
     x = [ point((pi/180)*lon,(pi/180)*lat) for lat in lats, lon in lons]
     pts = [ point(mesh.lon_i[ij], mesh.lat_i[ij]) for ij in ijrange]
-    g = SimpleGraph([ Edge(mesh.edge_down_up[1,i], mesh.edge_down_up[2,i]) for i in eachindex(mesh.le)])
-    sphtree = spheretree(meshtree(Metis.graph(g),4), dual_spheres(mesh))
-    ww = [ traverse(xx, sphtree) do x, v
+    ww = [ traverse(xx, tree) do x, v
         return weights(x, v, pts, mesh.dual_vertex)
     end for xx in x ]
     return Interpolator(ijrange, ww)
@@ -37,28 +35,36 @@ function lonlat_interp(mesh, lons, lats)
 end
 
 """
-    data_lin = linear_interpolator(mesh, data)
+    data_lin = linear_interpolator(data, mesh, tree=spherical_tree(mesh))
     data_lonlat = data_lin(lon, lat)
 
 Return `data_lin`, which interpolates `data` linearly at point 
 with longitude `lon` and latitude `lat` *in radians* :
 
     data_lin(mesh.lon_i[ij], mesh.lat_i[ij]) == data[ij]
-
 """
-function linear_interpolator(mesh, data)
+function linear_interpolator(data, mesh, tree)
     pts = map(point, mesh.lon_i, mesh.lat_i)
-    g = SimpleGraph([ Edge(mesh.edge_down_up[1,i], mesh.edge_down_up[2,i]) for i in eachindex(mesh.le)])
-    sphtree = spheretree(meshtree(Metis.graph(g),4), dual_spheres(mesh))
 
     function eval(lon, lat)
         x = point(lon, lat)
-        w = traverse(x, sphtree) do x, v
+        w = traverse(x, tree) do x, v
             weights(x, v, pts, mesh.dual_vertex)
         end
         isnothing(w) && @info "point not found !" lon lat x
         return interpolate(w, data)
     end
+end
+
+"""
+    tree = spherical_tree(mesh)
+
+Return a tree structure obtained by recursively partitioning `mesh`
+and computing spheres bounding each partition. Pass this tree to `linear_interpolator`.
+"""
+function spherical_tree(mesh)
+    g = SimpleGraph([ Edge(mesh.edge_down_up[1,i], mesh.edge_down_up[2,i]) for i in eachindex(mesh.le)])
+    return spheretree(meshtree(Metis.graph(g),4), dual_spheres(mesh))
 end
 
 struct Interpolator{IJ, W}
@@ -197,9 +203,9 @@ Node(x::T) where T = Tree{T}(x,Tree{T}[])
 end
 
 function dual_sphere(pts, v)
-    pts = [pts[vv] for vv in v]
-    center, radius = BoundingSphere.boundingsphere(pts)
-    return (center=center, radius=radius*2)
+    points = [pts[vv] for vv in (v[1], v[2], v[3])]
+    center, radius = BoundingSphere.boundingsphere(points)
+    return (center=center, radius=radius)
 end
 
 function dual_spheres(mesh)
