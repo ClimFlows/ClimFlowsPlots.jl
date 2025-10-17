@@ -44,16 +44,25 @@ with longitude `lon` and latitude `lat` *in radians* :
     data_lin(mesh.lon_i[ij], mesh.lat_i[ij]) == data[ij]
 """
 function linear_interpolator(data, mesh, tree)
-    pts = map(point, mesh.lon_i, mesh.lat_i)
+    pts = point.(mesh.lon_i, mesh.lat_i)
+    return P1_Function(data, pts, mesh, tree)
+end
 
-    function eval(lon, lat)
-        x = point(lon, lat)
-        w = traverse(x, tree) do x, v
-            weights(x, v, pts, mesh.dual_vertex)
-        end
-        isnothing(w) && @info "point not found !" lon lat x
-        return interpolate(w, data)
+struct P1_Function{Data, Points, Mesh, Tree}
+    data::Data
+    pts::Points
+    mesh::Mesh
+    tree::Tree
+end
+
+function (eval::P1_Function)(lon, lat)
+    (; data, pts, mesh, tree) = eval
+    x = point(lon, lat)
+    w = traverse(x, tree) do x, v
+        weights(x, v, pts, mesh.dual_vertex)
     end
+    isnothing(w) && @info "point not found !" lon lat x
+    return interpolate(w, data)
 end
 
 """
@@ -71,6 +80,8 @@ struct Interpolator{IJ, W}
     ijrange::IJ
     ww::W
 end
+Base.show(io::IO, ::I) where {I<:Interpolator}= print(io, I)
+
 function (interp::Interpolator)(data::AbstractMatrix)
     if axes(data,1) == interp.ijrange
         return interpolate_HV(interp.ww, data)
@@ -140,6 +151,7 @@ struct Tree{Node}
     node :: Node
     child :: Vector{Tree{Node}}
 end
+Base.show(io::IO, ::T) where {T<:Tree} = print(io, T)
 
 """
 Subset of a parent graph. Keeps the mapping from indices in the subgraph
