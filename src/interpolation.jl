@@ -54,6 +54,7 @@ struct P1_Function{Data, Points, Mesh, Tree}
     mesh::Mesh
     tree::Tree
 end
+Base.show(io::IO, ::P1_Function) = print(io, "P1_Function")
 
 function (eval::P1_Function)(lon, lat)
     (; data, pts, mesh, tree) = eval
