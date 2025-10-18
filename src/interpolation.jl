@@ -16,30 +16,73 @@ using Metis, LightGraphs, BoundingSphere, StaticArrays
 point(lon,lat) = SVector( map(Float64, (cos(lat)*cos(lon), cos(lat)*sin(lon), sin(lat))) )
 
 """
-    interp = lonlat_interp(mesh, lons, lats)
+    interp = lonlat_interp(lons, lats, mesh, tree=spherical_tree(mesh))
     data_lonlat = interp(data_mesh)
-Return `interp`, which can be called to interpolate data
-given at mesh nodes onto a regular lon-lat mesh.
-*Lons and Lats are in degrees*.
+Return function `interp`, which interpolates data
+given at mesh nodes onto the longitude-latitutde grid 
+defined by vectors `lons` and `lats` *in degrees*.
 
 """
-function lonlat_interp(mesh, lons, lats)
+function lonlat_interp(lons, lats, mesh, tree=spherical_tree(mesh))
     ijrange = eachindex(mesh.Ai)
     x = [ point((pi/180)*lon,(pi/180)*lat) for lat in lats, lon in lons]
     pts = [ point(mesh.lon_i[ij], mesh.lat_i[ij]) for ij in ijrange]
-    g = SimpleGraph([ Edge(mesh.edge_down_up[1,i], mesh.edge_down_up[2,i]) for i in eachindex(mesh.le)])
-    sphtree = spheretree(meshtree(Metis.graph(g),4), dual_spheres(mesh))
-    ww = [ traverse(xx, sphtree) do x, v
+    ww = [ traverse(xx, tree) do x, v
         return weights(x, v, pts, mesh.dual_vertex)
     end for xx in x ]
     return Interpolator(ijrange, ww)
 #    return data -> interpolate(ww, data)
 end
 
+"""
+    data_lin = linear_interpolator(data, mesh, tree=spherical_tree(mesh))
+    data_lonlat = data_lin(lon, lat)
+
+Return `data_lin`, which interpolates `data` linearly at point 
+with longitude `lon` and latitude `lat` *in radians* :
+
+    data_lin(mesh.lon_i[ij], mesh.lat_i[ij]) == data[ij]
+"""
+function linear_interpolator(data, mesh, tree)
+    pts = point.(mesh.lon_i, mesh.lat_i)
+    return P1_Function(data, pts, mesh, tree)
+end
+
+struct P1_Function{Data, Points, Mesh, Tree}
+    data::Data
+    pts::Points
+    mesh::Mesh
+    tree::Tree
+end
+Base.show(io::IO, ::P1_Function) = print(io, "P1_Function")
+
+function (eval::P1_Function)(lon, lat)
+    (; data, pts, mesh, tree) = eval
+    x = point(lon, lat)
+    w = traverse(x, tree) do x, v
+        weights(x, v, pts, mesh.dual_vertex)
+    end
+    isnothing(w) && @info "point not found !" lon lat x
+    return interpolate(w, data)
+end
+
+"""
+    tree = spherical_tree(mesh)
+
+Return a tree structure obtained by recursively partitioning `mesh`
+and computing spheres bounding each partition. Pass this tree to `linear_interpolator`.
+"""
+function spherical_tree(mesh)
+    g = SimpleGraph([ Edge(mesh.edge_down_up[1,i], mesh.edge_down_up[2,i]) for i in eachindex(mesh.le)])
+    return spheretree(meshtree(Metis.graph(g),4), dual_spheres(mesh))
+end
+
 struct Interpolator{IJ, W}
     ijrange::IJ
     ww::W
 end
+Base.show(io::IO, ::I) where {I<:Interpolator}= print(io, I)
+
 function (interp::Interpolator)(data::AbstractMatrix)
     if axes(data,1) == interp.ijrange
         return interpolate_HV(interp.ww, data)
@@ -70,9 +113,10 @@ function interpolate_VH(w::Matrix, data::AbstractMatrix)
     return result
 end
 
+
 # Returns interpolation weights if point `x` inside triangle `( pts[vtx[i,v]] for i=1:3 )`, else nothing
 function weights(x, v, pts, vtx)
-    i, j, k = ( vtx[i,v] for i in 1:3 )
+    i, j, k = ( vtx[n,v] for n in 1:3 )
     ijk = i, j, k # tuple
     a, b, c = ( pts[i]   for i in ijk )
     xab = triprod(x,a,b)
@@ -82,7 +126,18 @@ function weights(x, v, pts, vtx)
         w = inv(xab+xbc+xca)
         return ijk, (w*xbc, w*xca, w*xab)
     else
-        return nothing
+        wabs = abs(xab)+abs(xbc)+abs(xca)
+        nz(x) = (abs(x)<=(1e-12*wabs))
+        nzab, nzbc, nzca = nz(xab), nz(xbc), nz(xca)
+        if nzab || nzbc || nzca
+#            @info "point on boundary"
+            w = inv(xab+xbc+xca)
+            return ijk, (w*xbc, w*xca, w*xab)
+        else
+#            xx, zab, zbc, zca  = tuple(x), xab/wabs, xbc/wabs, xca/wabs
+#            @info "not in abc" xx (zab, zbc, zca) (nzab, nzbc, nzca)
+            return nothing
+        end
     end
 end
 
@@ -97,6 +152,7 @@ struct Tree{Node}
     node :: Node
     child :: Vector{Tree{Node}}
 end
+Base.show(io::IO, ::T) where {T<:Tree} = print(io, T)
 
 """
 Subset of a parent graph. Keeps the mapping from indices in the subgraph
@@ -119,18 +175,18 @@ function traverse(fun::Fun, x, tree) where Fun
         if length(child)>1
             for c in child
                 result = traverse(fun, x, c)
-                result === nothing || break
+                isnothing(result)  || break
             end
         else
             for v in node.glob
                 result = fun(x, v)
-                result === nothing || break
+                isnothing(result) || break
             end
         end
     end
     return result
 end
-@inline isinsphere((x,y,z),(a,b,c), radius) = @fastmath (x-a)^2+(y-b)^2+(z-c)^2<=radius*radius*1.000001
+@inline isinsphere((x,y,z),(a,b,c), radius) = (x-a)^2+(y-b)^2+(z-c)^2<=radius*radius*1.000001
 
 """
 Given bounding spheres for leaves, constructs bounding spheres at each level of the tree.
@@ -160,8 +216,8 @@ Node(x::T) where T = Tree{T}(x,Tree{T}[])
 end
 
 function dual_sphere(pts, v)
-    pts = [pts[vv] for vv in v]
-    center, radius = BoundingSphere.boundingsphere(pts)
+    points = [pts[vv] for vv in (v[1], v[2], v[3])]
+    center, radius = BoundingSphere.boundingsphere(points)
     return (center=center, radius=radius)
 end
 

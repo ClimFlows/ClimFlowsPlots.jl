@@ -1,11 +1,11 @@
 module VoronoiSphere
 
-import GeometryBasics as GB
-import Makie
-using GeoMakie
-using ColorSchemes
+# import GeometryBasics as GB
+# import Makie
+# using GeoMakie
+# using ColorSchemes
 
-import ..SphericalInterpolations as SI
+# import ..SphericalInterpolations as SI
 
 const DATA_ON_PRIMAL = "Data must be a scalar defined at primal cells of a spherical Voronoi mesh and passed as a Makie.Observable"
 
@@ -19,6 +19,34 @@ const DATA_ON_PRIMAL = "Data must be a scalar defined at primal cells of a spher
 Plots scalar data as a function of longitude and latitude. $DATA_ON_PRIMAL. Data is interpolated linearly to
 a regular lon-lat grid of resolution `resolution` before plotting.
 """
+function plot2D end # implemented in extension
+
+"""
+    data = Makie.Observable(data) # must be on primal mesh
+    fig = plot_voronoi_orthographic(sphere, data ; zoom=1.6)
+    display(fig)
+    data[] = new_data # updates the plot
+    display(fig)
+
+Plots scalar data in a stereographic view. $DATA_ON_PRIMAL. Data is interpolated linearly to
+a regular lon-lat grid of resolution `resolution` before plotting.
+"""
+function plot_orthographic end # implemented in extension
+
+"""
+    data = Makie.Observable(data) # must be on primal mesh
+    fig = plot_native_3D(sphere, data ; zoom=1.6)
+    display(fig)
+    data[] = new_data # updates the plot
+    display(fig)
+
+    Plots scalar data in a stereographic view. $DATA_ON_PRIMAL. Data on
+    native mesh is used without interpolation, but plotting interpolates linearly between
+    primal cell centers (which coincides with triangle vertices).
+"""
+function plot_native_3D end # implemented in extension
+
+#=
 function plot_2D(sphere, data::Makie.Observable; resolution = 1.0, options...)
     # check that data is on primal mesh and interpolate to lon-lat
     @assert length(data[]) == length(sphere.Ai)
@@ -31,16 +59,6 @@ function plot_2D(sphere, data::Makie.Observable; resolution = 1.0, options...)
     return fig
 end
 
-"""
-    data = Makie.Observable(data) # must be on primal mesh
-    fig = plot_voronoi_orthographic(sphere, data ; zoom=1.6)
-    display(fig)
-    data[] = new_data # updates the plot
-    display(fig)
-
-Plots scalar data in a stereographic view. $DATA_ON_PRIMAL. Data is interpolated linearly to
-a regular lon-lat grid of resolution `resolution` before plotting.
-"""
 function plot_orthographic(sphere, data::Makie.Observable; resolution = 0.5, options...)
     # check that data is on primal mesh and interpolate to lon-lat
     @assert length(data[]) == length(sphere.Ai)
@@ -54,17 +72,6 @@ function plot_orthographic(sphere, data::Makie.Observable; resolution = 0.5, opt
     return fig
 end
 
-"""
-    data = Makie.Observable(data) # must be on primal mesh
-    fig = plot_native_3D(sphere, data ; zoom=1.6)
-    display(fig)
-    data[] = new_data # updates the plot
-    display(fig)
-
-    Plots scalar data in a stereographic view. $DATA_ON_PRIMAL. Data on
-    native mesh is used without interpolation, but plotting interpolates linearly between
-    primal cell centers (which coincides with triangle vertices).
-"""
 function plot_native_3D(sphere, data::Makie.Observable; zoom = 1.6, options...)
     # check that data is on primal mesh
     @assert length(data[]) == length(sphere.Ai)
@@ -82,5 +89,6 @@ function plot_native_3D(sphere, data::Makie.Observable; zoom = 1.6, options...)
     Makie.scale!(ax.scene, zoom, zoom, zoom)
     return fig
 end
+=#
 
 end # VoronoiSphere

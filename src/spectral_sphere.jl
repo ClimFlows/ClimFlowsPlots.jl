@@ -1,6 +1,6 @@
 module SpectralSphere
 
-using GeoMakie
+# using GeoMakie
 
 # orthographic plot
 
