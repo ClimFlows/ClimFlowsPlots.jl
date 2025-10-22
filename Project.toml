@@ -1,7 +1,7 @@
 name = "ClimFlowsPlots"
 uuid = "dd0979db-5334-4d13-8d2e-fa88a4f47f12"
 authors = ["The ClimFlows contributors"]
-version = "0.2.0"
+version = "0.2.1"
 
 [deps]
 BoundingSphere = "747eb165-47b8-53f2-ad32-9704a7dfc50a"
@@ -14,6 +14,9 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 [weakdeps]
 GeoMakie = "db073c08-6b98-4ee5-b6a4-5efafb3259c6"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+
+[extensions]
+GeoMakie_Ext = ["GeoMakie", "Makie"]
 
 [compat]
 Makie = "0.20, 0.21"
