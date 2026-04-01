@@ -7,6 +7,7 @@ using VoronoiSpheres: VoronoiSphere
 using GeoMakie, CairoMakie
 using NetCDF: ncread
 
+
 fun(lon, lat) = cos(lat)^4*cos(4*lon) # in radians
 savefig(name, fig) = save(joinpath(savepath, name), fig)
 
