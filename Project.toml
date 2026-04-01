@@ -20,7 +20,8 @@ GeoMakie_Ext = ["GeoMakie", "Makie"]
 
 [compat]
 Makie = "0.20, 0.21"
-GeoMakie = "0.6, 0.7"
+# GeoMakie = "0.6, 0.7"
+GeoMakie = "0.6"
 BoundingSphere = "0.2"
 ColorSchemes = "1,2,3"
 GeometryBasics = "0.4"
