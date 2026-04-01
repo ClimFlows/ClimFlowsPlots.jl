@@ -37,18 +37,15 @@ function plot_native_3D(sphere, data::Makie.Observable; zoom = 1.6, options...)
     # check that data is on primal mesh
     @assert length(data[]) == length(sphere.Ai)
     # build graphical mesh
-    lon, lat, vertex = sphere.lon_i, sphere.lat_i, sphere.dual_vertex
-    xyz(lon, lat) = cos(lat) * cos(lon), cos(lat) * sin(lon), sin(lat)
-    nodes = [GB.Point3f(xyz(lon[i], lat[i])) for i in eachindex(lon)]
-    faces = [
-        GB.GLTriangleFace((vertex[1, i], vertex[2, i], vertex[3, i])) for
-        i in axes(vertex, 2)
-    ]
-    makiemesh = GB.Mesh(nodes, faces)
+    nodes = map(xyz, sphere.lon_i, sphere.lat_i)
+    makiemesh = GB.Mesh(nodes, faces(sphere.dual_vertex))
     # create and return plot
-    fig, ax, obj = Makie.mesh(makiemesh; color = data, options...)
+    fig, ax, _ = Makie.mesh(makiemesh; color = data, options...)
     Makie.scale!(ax.scene, zoom, zoom, zoom)
     return fig
 end
+xyz(lon, lat) = GB.Point3f(cos(lat) * cos(lon), cos(lat) * sin(lon), sin(lat))
+faces(vertex::Matrix) = [ GB.GLTriangleFace((vertex[1, i], vertex[2, i], vertex[3, i])) for i in axes(vertex, 2) ] 
+faces(vertex::Vector) = map(GB.GLTriangleFace, vertex)
 
 end # module
