@@ -235,7 +235,7 @@ function dual_spheres(pts, dual_vertex::Vector)
 end
 
 function dual_spheres(pts, dual_vertex::Matrix) 
-    return [dual_sphere(pts, @view mesh.dual_vertex[:,v]) for v in axes(dual_vertex, 2)]
+    return [dual_sphere(pts, @view dual_vertex[:,v]) for v in axes(dual_vertex, 2)]
 end
 
 """
