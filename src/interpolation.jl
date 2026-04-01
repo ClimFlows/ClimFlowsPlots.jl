@@ -73,9 +73,11 @@ Return a tree structure obtained by recursively partitioning `mesh`
 and computing spheres bounding each partition. Pass this tree to `linear_interpolator`.
 """
 function spherical_tree(mesh)
-    g = SimpleGraph([ Edge(mesh.edge_down_up[1,i], mesh.edge_down_up[2,i]) for i in eachindex(mesh.le)])
+    g = SimpleGraph(edges(mesh.edge_down_up))
     return spheretree(meshtree(Metis.graph(g),4), dual_spheres(mesh))
 end
+edges(down_up::Matrix) = [ Edge(down_up[1,i], down_up[2,i]) for i in axes(down_up, 2)]
+edges(down_up::Vector) = [ Edge(down,up) for (down,up) in down_up ]
 
 struct Interpolator{IJ, W}
     ijrange::IJ
@@ -115,10 +117,13 @@ end
 
 
 # Returns interpolation weights if point `x` inside triangle `( pts[vtx[i,v]] for i=1:3 )`, else nothing
-function weights(x, v, pts, vtx)
-    i, j, k = ( vtx[n,v] for n in 1:3 )
-    ijk = i, j, k # tuple
-    a, b, c = ( pts[i]   for i in ijk )
+# vtx is either a 3xN matrix or a Vector of triplets (i,j,k)
+weights(x, v, pts, vtx::Matrix) = weights(x, pts, (vtx[1,v], vtx[2,v], vtx[3,v]) )
+weights(x, v, pts, vtx::Vector{<:Tuple}) = weights(x, pts, vtx[v])
+
+function weights(x, pts, ijk)
+    i, j, k = ijk
+    a, b, c = pts[i], pts[j], pts[k]
     xab = triprod(x,a,b)
     xbc = triprod(x,b,c)
     xca = triprod(x,c,a)
@@ -216,14 +221,21 @@ Node(x::T) where T = Tree{T}(x,Tree{T}[])
 end
 
 function dual_sphere(pts, v)
+    # v represents a triangle, known through the indices of its three vertices
+    # points is a vector of tuples (lon, lat)
     points = [pts[vv] for vv in (v[1], v[2], v[3])]
     center, radius = BoundingSphere.boundingsphere(points)
-    return (center=center, radius=radius)
+    return (; center, radius)
 end
 
-function dual_spheres(mesh)
-    pts = [ point(mesh.lon_i[ij], mesh.lat_i[ij]) for ij in eachindex(mesh.Ai) ]
-    return [dual_sphere(pts, @view mesh.dual_vertex[:,v]) for v in eachindex(mesh.Av)]
+dual_spheres(mesh) = dual_spheres(map(point, mesh.lon_i, mesh.lat_i), mesh.dual_vertex)
+function dual_spheres(pts, dual_vertex::Vector)
+    vv = collect(first(dual_vertex))
+    return [dual_sphere(pts, copyto!(vv, v)) for v in dual_vertex]
+end
+
+function dual_spheres(pts, dual_vertex::Matrix) 
+    return [dual_sphere(pts, @view mesh.dual_vertex[:,v]) for v in axes(dual_vertex, 2)]
 end
 
 """

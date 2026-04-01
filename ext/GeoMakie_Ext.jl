@@ -8,7 +8,7 @@ import ColorSchemes
 import ClimFlowsPlots.VoronoiSphere: plot_2D, plot_orthographic, plot_native_3D
 import ClimFlowsPlots.SphericalInterpolations as SI
 
-function plot_2D(data::Makie.Observable, sphere, tree=SI.spherical_tree(sphere); resolution = 1.0, options...)
+function plot_2D(sphere, data::Makie.Observable, tree=SI.spherical_tree(sphere); resolution = 1.0, options...)
     # check that data is on primal mesh and interpolate to lon-lat
     @assert length(data[]) == length(sphere.Ai)
     lons, lats = -180:resolution:180, -90:resolution:90
@@ -20,7 +20,7 @@ function plot_2D(data::Makie.Observable, sphere, tree=SI.spherical_tree(sphere);
     return fig
 end
 
-function plot_orthographic(data::Makie.Observable, sphere, tree=SI.spherical_tree(sphere); resolution = 0.5, options...)
+function plot_orthographic(sphere, data::Makie.Observable, tree=SI.spherical_tree(sphere); resolution = 0.5, options...)
     # check that data is on primal mesh and interpolate to lon-lat
     @assert length(data[]) == length(sphere.Ai)
     lons, lats = -180:resolution:180, -90:resolution:90
@@ -33,7 +33,7 @@ function plot_orthographic(data::Makie.Observable, sphere, tree=SI.spherical_tre
     return fig
 end
 
-function plot_native_3D(data::Makie.Observable, sphere ; zoom = 1.6, options...)
+function plot_native_3D(sphere, data::Makie.Observable; zoom = 1.6, options...)
     # check that data is on primal mesh
     @assert length(data[]) == length(sphere.Ai)
     # build graphical mesh
