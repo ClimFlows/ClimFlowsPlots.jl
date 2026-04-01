@@ -12,7 +12,7 @@ const DATA_ON_PRIMAL = "Data must be a scalar defined at primal cells of a spher
 Plots scalar data as a function of longitude and latitude. $DATA_ON_PRIMAL. Data is interpolated linearly to
 a regular lon-lat grid of resolution `resolution` before plotting.
 """
-function plot2D end # implemented in extension
+function plot_2D end # implemented in extension
 
 """
     data = Makie.Observable(data) # must be on primal mesh
