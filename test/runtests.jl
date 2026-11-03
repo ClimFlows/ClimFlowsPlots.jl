@@ -2,7 +2,7 @@ using ClimFlowsPlots
 using ClimFlowsPlots: VoronoiSphere as VSPlots
 using Test
 
-using ClimFlowsData: DYNAMICO_reader, DYNAMICO_meshfile
+using ClimFlowsData: DYNAMICO_reader, VoronoiMeshes
 using VoronoiSpheres: VoronoiSphere
 using GeoMakie, CairoMakie
 using NetCDF: ncread
@@ -13,7 +13,7 @@ savefig(name, fig) = save(joinpath(savepath, name), fig)
 
 savepath = mkpath(joinpath(@__DIR__, "artifacts"))
 meshname = "uni.2deg.mesh.nc"
-sphere = VoronoiSphere(DYNAMICO_reader(ncread, DYNAMICO_meshfile(meshname)) ; prec=Float32)
+sphere = VoronoiSphere(DYNAMICO_reader(ncread, VoronoiMeshes(meshname)) ; prec=Float32)
 pv = GeoMakie.Observable(fun.(sphere.lon_i, sphere.lat_i))
 
 @testset "ClimFlowsPlots.jl" begin
