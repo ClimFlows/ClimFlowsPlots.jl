@@ -27,7 +27,10 @@ function plot_orthographic(sphere, data::Makie.Observable, tree=SI.spherical_tre
     color = map(transpose ∘ SI.lonlat_interp(lons, lats, sphere, tree), data)
     # create and return plot
     fig = Makie.Figure()
-    ga = GeoMakie.GeoAxis(fig[1, 1]; dest = "+proj=ortho +lon_0=19 +lat_0=50")
+    # The interpolated field covers the whole globe. Set its geographic domain
+    # explicitly instead of inferring limits from the projected surface.
+    ga = GeoMakie.GeoAxis(fig[1, 1]; dest = "+proj=ortho +lon_0=19 +lat_0=50",
+        limits = (extrema(lons), extrema(lats)))
     surface!(ga, lons, lats, color; shading = NoShading, options...)
     lines!(ga, GeoMakie.coastlines())
     return fig

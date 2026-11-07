@@ -1,7 +1,7 @@
 name = "ClimFlowsPlots"
 uuid = "dd0979db-5334-4d13-8d2e-fa88a4f47f12"
 authors = ["The ClimFlows contributors"]
-version = "0.2.2"
+version = "0.2.3"
 
 [deps]
 BoundingSphere = "747eb165-47b8-53f2-ad32-9704a7dfc50a"
@@ -19,16 +19,17 @@ Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 GeoMakie_Ext = ["GeoMakie", "Makie"]
 
 [compat]
-Makie = "0.20, 0.21"
-# GeoMakie = "0.6, 0.7"
-GeoMakie = "0.6"
+# Makie 0.24 uses nameof instead of TypeName.mt (Julia 1.12).
+Makie = "0.24"
+GeoMakie = "0.7.15"
 BoundingSphere = "0.2"
 ColorSchemes = "1,2,3"
-GeometryBasics = "0.4"
+GeometryBasics = "0.5.9"
 LightGraphs = "1"
 Metis = "1"
-StaticArrays = "1"
-julia = "1.9"
+# 1.9.8 removes an import deleted in StaticArraysCore 1.4.4.
+StaticArrays = "1.9.8"
+julia = "1.10"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
