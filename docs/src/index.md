@@ -10,5 +10,5 @@ Documentation for [ClimFlowsPlots](https://github.com/ClimFlows/ClimFlowsPlots.j
 ```
 
 ```@autodocs
-Modules = [ClimFlowsPlots, ClimFlowsPlots.VoronoiSphere, ClimFlowsPlots.SphericalInterpolations]
+Modules = [ClimFlowsPlots, ClimFlowsPlots.VoronoiSphere, ClimFlowsPlots.SpectralSphere, ClimFlowsPlots.SphericalInterpolations]
 ```

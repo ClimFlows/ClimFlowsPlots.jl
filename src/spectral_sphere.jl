@@ -1,16 +1,14 @@
 module SpectralSphere
 
-# using GeoMakie
+"""
+    orthographic(lons, lats, field; options...)
 
-# orthographic plot
-
-function orthographic(lons, lats, field; options...)
-    fig = Figure()
-    ga = GeoAxis(fig[1, 1]; dest = "+proj=ortho +lon_0=19 +lat_0=50")
-    surface!(ga, lons, lats, field; shading = NoShading, options...)
-    lines!(ga, GeoMakie.coastlines())
-    return fig
-end
+Plot a longitude–latitude field on an orthographic globe. Coordinates are in
+degrees and longitude indexes the first dimension of `field`. Pass a Makie
+`Observable` to update the field in place during animation. Load Makie and
+GeoMakie to enable this method. Keyword arguments are passed to `surface!`.
+"""
+function orthographic end
 
 # convenience functions
 
