@@ -5,6 +5,7 @@ using Makie: Makie, lines!, surface!, NoShading
 import GeoMakie
 import ColorSchemes
 
+import ClimFlowsPlots.SpectralSphere: orthographic
 import ClimFlowsPlots.VoronoiSphere: plot_2D, plot_orthographic, plot_native_3D
 import ClimFlowsPlots.SphericalInterpolations as SI
 
@@ -25,13 +26,15 @@ function plot_orthographic(sphere, data::Makie.Observable, tree=SI.spherical_tre
     @assert length(data[]) == length(sphere.Ai)
     lons, lats = -180:resolution:180, -90:resolution:90
     color = map(transpose ∘ SI.lonlat_interp(lons, lats, sphere, tree), data)
-    # create and return plot
+    return orthographic(lons, lats, color; options...)
+end
+
+function orthographic(lons, lats, field; options...)
     fig = Makie.Figure()
-    # The interpolated field covers the whole globe. Set its geographic domain
-    # explicitly instead of inferring limits from the projected surface.
+    # Fix the geographic domain while the field changes during an animation.
     ga = GeoMakie.GeoAxis(fig[1, 1]; dest = "+proj=ortho +lon_0=19 +lat_0=50",
         limits = (extrema(lons), extrema(lats)))
-    surface!(ga, lons, lats, color; shading = NoShading, options...)
+    surface!(ga, lons, lats, field; shading = NoShading, options...)
     lines!(ga, GeoMakie.coastlines())
     return fig
 end
